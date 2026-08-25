@@ -5,29 +5,48 @@ PID = 0x615E
 USAGE_PAGE = 0xFF60
 USAGE = 0x0061
 
-devices = hid.enumerate(VID, PID)
+DRAG_SCROLL_ON = 0x53
+DRAG_SCROLL_OFF = 0x73
 
-device_info = next(
-    (
-        d for d in devices
-        if d["usage_page"] == USAGE_PAGE
-        and d["usage"] == USAGE
-    ),
-    None,
-)
 
-if device_info is None:
+def find_corne_raw_hid():
+    for device in hid.enumerate(VID, PID):
+        if (
+            device["usage_page"] == USAGE_PAGE
+            and device["usage"] == USAGE
+        ):
+            return device
+
     raise RuntimeError("Corne Raw HID interface not found")
 
-print("Opening:", device_info["product_string"], device_info["path"])
 
-dev = hid.device()
-dev.open_path(device_info["path"])
+def main():
+    device_info = find_corne_raw_hid()
 
-print("Listening...")
+    print("Opening:", device_info["product_string"], device_info["path"])
 
-while True:
-    data = dev.read(32)
+    dev = hid.device()
+    dev.open_path(device_info["path"])
 
-    if data:
-        print("RX:", " ".join(f"{b:02x}" for b in data))
+    print("Listening...")
+
+    while True:
+        data = dev.read(32)
+
+        if not data:
+            continue
+
+        command = data[0]
+
+        if command == DRAG_SCROLL_ON:
+            print("EVENT: DRAG_SCROLL_ON")
+
+        elif command == DRAG_SCROLL_OFF:
+            print("EVENT: DRAG_SCROLL_OFF")
+
+        else:
+            print(f"EVENT: UNKNOWN 0x{command:02x}")
+
+
+if __name__ == "__main__":
+    main()
