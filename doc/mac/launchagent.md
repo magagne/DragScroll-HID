@@ -26,17 +26,38 @@ The bridge implementation is located here:
 
 ## Install and Start
 
-From the repository root:
-
-Make the installer executable (required for a fresh checkout):
-
-    chmod +x platform/mac/launchagent/install.sh
-
-Then install and start the Agent:
+The project provides one normal command for managing the LaunchAgent:
 
     ./platform/mac/launchagent/install.sh
 
-This is the normal and preferred way to install and start the Agent.
+Despite the script name, this command performs both operations:
+
+1. It generates and installs the LaunchAgent plist into the current user's
+   `~/Library/LaunchAgents/` directory.
+2. It loads the LaunchAgent with `launchctl`, which starts the bridge
+   immediately.
+
+There is no separate project `start` command.
+
+**Install and Start is one operation in this project.**
+
+From a fresh checkout, make the installer executable first:
+
+    chmod +x platform/mac/launchagent/install.sh
+
+Then run:
+
+    ./platform/mac/launchagent/install.sh
+
+This is the normal and preferred way to install and start the LaunchAgent.
+
+The script:
+
+- generates the plist using the current repository location
+- validates the generated plist
+- unloads any existing instance of the LaunchAgent
+- loads the new LaunchAgent
+- starts the bridge
 
 The bridge does not need to be started manually with Python when using the
 LaunchAgent.
@@ -47,22 +68,39 @@ The service identifier is:
 
     com.corne-ploopy-bridge
 
-Check whether the Agent is loaded:
+Check whether the LaunchAgent is loaded:
 
     launchctl print gui/$(id -u)/com.corne-ploopy-bridge
 
-If the Agent is loaded, launchctl displays its service information.
+If the LaunchAgent is loaded, `launchctl` displays its service information.
 
-A running Agent should report:
+A running LaunchAgent should report:
 
     state = running
 
 The service should also show the Python executable from the project's
 virtual environment and the repository as its working directory.
 
+The LaunchAgent redirects standard output and standard error to:
+
+    bridge.log
+    bridge-error.log
+
+Normal service information is written to `bridge.log` with ISO 8601
+timestamps and the local UTC offset.
+
+For example:
+
+    [2026-08-28T18:16:27-04:00] HID bridge started.
+    [2026-08-28T18:16:27-04:00] Device connected: ZMK Project / Crkbd-ZMK-CHOC-42
+    [2026-08-28T18:16:27-04:00] HID bridge running.
+
+Debug-level HID traffic is not written to the normal service log unless the
+bridge is explicitly started with `--debug` from a terminal.
+
 ## Stop the Agent
 
-To stop the Agent for the current user:
+To stop and unload the LaunchAgent for the current user:
 
     launchctl bootout gui/$(id -u)/com.corne-ploopy-bridge
 
@@ -74,21 +112,26 @@ The expected result after a successful stop is:
 
     Could not find service "com.corne-ploopy-bridge"
 
-To start it again, use the installation command:
+There is no separate project `start` command.
+
+To install and start the LaunchAgent again, use the project's Install and
+Start command:
 
     ./platform/mac/launchagent/install.sh
 
 ## Troubleshooting
 
-If launchctl reports:
+If `launchctl` reports:
 
     Could not find service "com.corne-ploopy-bridge"
 
-the Agent is not currently loaded for the user.
+the LaunchAgent is not currently loaded for the user.
 
 Run:
 
     ./platform/mac/launchagent/install.sh
+
+This both installs and starts the LaunchAgent.
 
 If the installer reports that the plist cannot be found, verify that the
 LaunchAgent files are present under:
@@ -97,6 +140,16 @@ LaunchAgent files are present under:
 
 The installer uses the plist located beside the install script and does not
 depend on a hardcoded user-specific repository path.
+
+If the LaunchAgent is running but `bridge.log` is empty, first verify the
+configured output path:
+
+    launchctl print gui/$(id -u)/com.corne-ploopy-bridge | grep -E 'stdout path|stderr path'
+
+The expected paths are:
+
+    stdout path = .../Corne-Ploopy-Bridge/bridge.log
+    stderr path = .../Corne-Ploopy-Bridge/bridge-error.log
 
 ## Bridge Implementation
 
@@ -110,9 +163,16 @@ supervises the bridge; it does not contain the bridge logic.
 ## Debugging
 
 The bridge can also be run manually in debug mode during development or
-troubleshooting.
+troubleshooting:
 
-The LaunchAgent is intended for normal operation.
+    .venv/bin/python -u src/bridge.py --debug
+
+The LaunchAgent is intended for normal automatic operation.
+
+Normal service logging is always enabled. It records important lifecycle
+events such as bridge startup, device connection, and bridge shutdown.
+
+Detailed HID diagnostic output remains available through `--debug`.
 
 ## Platform Separation
 
