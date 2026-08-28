@@ -1,4 +1,5 @@
 import argparse
+import ctypes
 import time
 
 import hid
@@ -120,6 +121,15 @@ def close_device(entry, debug=False):
         pass
 
 
+
+def enable_shared_hid_access():
+    lib = ctypes.CDLL(hid.__file__)
+    func = lib.hid_darwin_set_open_exclusive
+    func.argtypes = [ctypes.c_int]
+    func.restype = None
+    func(0)
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -130,6 +140,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    enable_shared_hid_access()
 
     ploopy = PloopyOutput()
 
