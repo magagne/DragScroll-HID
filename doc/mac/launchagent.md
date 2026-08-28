@@ -1,166 +1,125 @@
-# Corne-Ploopy-Bridge — macOS LaunchAgent
+# macOS LaunchAgent
 
-The Corne-Ploopy-Bridge runs as a macOS LaunchAgent so that the bridge
-starts automatically when the user logs in.
+The Corne-Ploopy-Bridge can run as a macOS LaunchAgent so the bridge starts
+automatically for the logged-in user.
+
+## What the LaunchAgent Does
+
+The LaunchAgent is the macOS process-management layer for the bridge.
+
+It starts the bridge automatically and keeps it running without requiring
+the bridge to be launched manually from a terminal.
+
+The LaunchAgent is separate from the bridge implementation itself.
 
 ## Files
 
-The LaunchAgent project files are stored in:
+The macOS LaunchAgent files are located here:
 
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/mac/launchagent/
+platform/mac/launchagent/
+├── install.sh
+└── com.matthieu.corne-ploopy-bridge.plist
 
-The source plist is:
+The bridge implementation is located here:
 
-    mac/mac/launchagent/com.matthieu.corne-ploopy-bridge.plist
+src/bridge.py
 
-The installation script is:
-
-    mac/mac/launchagent/install.sh
-
-The installed LaunchAgent is:
-
-    ~/Library/LaunchAgents/com.matthieu.corne-ploopy-bridge.plist
-
-## Python environment
-
-The LaunchAgent uses the project's Python virtual environment:
-
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/.venv/bin/python
-
-The bridge itself is:
-
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/src/bridge.py
-
-The plist uses Python's `-u` option so output is unbuffered.
-
-## Automatic startup
-
-The plist uses:
-
-    RunAtLoad = true
-
-This starts the bridge automatically when the LaunchAgent is loaded
-during user login.
-
-It also uses:
-
-    KeepAlive = true
-
-This tells macOS to keep the bridge running and restart it if the
-process exits unexpectedly.
-
-## Install or reload
+## Install and Start
 
 From the repository root:
 
-    ./mac/mac/launchagent/install.sh
+./platform/mac/launchagent/install.sh
 
-The script:
+This is the normal and preferred way to install and start the Agent.
 
-1. Validates the plist.
-2. Copies it to `~/Library/LaunchAgents/`.
-3. Stops the currently loaded instance, if present.
-4. Loads the new configuration.
-5. Displays the resulting LaunchAgent state.
+Do not use:
 
-## Verify
+python src/bridge.py
 
-Check the LaunchAgent:
+as the normal startup method when the LaunchAgent is being used.
 
-    launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge
+## Verify the Agent
 
-A working installation should show:
+The service identifier is:
 
-    state = running
+com.matthieu.corne-ploopy-bridge
 
-and a Python process under:
+Check whether the Agent is loaded:
 
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/.venv/bin/python
+launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge
 
-To check the arguments:
+If the Agent is loaded, launchctl displays its service information.
 
-    launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge | grep -A5 arguments
+If you see:
 
-The permanent configuration does NOT use `--debug`.
+Could not find service "com.matthieu.corne-ploopy-bridge"
 
-## Logs
+the Agent is not currently loaded for the user.
 
-Standard output:
+Run the installation script again:
 
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/bridge.log
+./platform/mac/launchagent/install.sh
 
-Standard error:
+Then verify again with:
 
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/bridge-error.log
+launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge
 
-View the bridge log:
+## Debugging
 
-    tail -f /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/bridge.log
+The bridge can also be run in debug mode during development or
+troubleshooting.
 
-View the error log:
+The LaunchAgent is intended for normal operation.
 
-    tail -f /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/bridge-error.log
+Debugging should therefore be performed separately from the permanent
+LaunchAgent configuration.
 
-## Temporary debugging
+## Platform Separation
 
-The production plist does not start the bridge with `--debug`.
+The LaunchAgent is specific to macOS.
 
-For manual debugging, run the bridge directly:
+The bridge itself is a host-side component and should remain independent
+of the operating system.
 
-    cd /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/src
-    source ../.venv/bin/activate
-    python bridge.py --debug
+Other platforms can provide their own startup mechanism without changing
+the core bridge architecture.
 
-Do not add `--debug` permanently to the LaunchAgent unless troubleshooting
-requires it.
+For example, a future Windows implementation can use PowerShell and
+Windows Task Scheduler.
 
-## Stop the LaunchAgent
+## Architecture
 
-To stop the currently running LaunchAgent:
+The LaunchAgent only controls how the bridge process is started and
+maintained on macOS.
 
-    launchctl bootout gui/$(id -u)/com.matthieu.corne-ploopy-bridge
+The actual event flow remains:
 
-This does not delete the plist.
+Corne / ZMK
+     │
+     ▼
+Raw HID event
+     │
+     ▼
+Corne-Ploopy-Bridge
+     │
+     ▼
+Ploopy
 
-## Start it again
+The LaunchAgent is therefore outside the HID event path.
 
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.matthieu.corne-ploopy-bridge.plist
+## Project Structure
 
-## Remove the LaunchAgent
+Corne-Ploopy-Bridge/
+├── src/
+│   └── bridge.py
+│
+├── platform/
+│   └── mac/
+│       └── launchagent/
+│           ├── install.sh
+│           └── com.matthieu.corne-ploopy-bridge.plist
+│
+└── doc/
+    └── mac/
+        └── launchagent.md
 
-Stop it first:
-
-    launchctl bootout gui/$(id -u)/com.matthieu.corne-ploopy-bridge
-
-Then remove the installed plist:
-
-    rm ~/Library/LaunchAgents/com.matthieu.corne-ploopy-bridge.plist
-
-The project copy in the repository remains untouched.
-
-## Important behavior
-
-The bridge does not depend on a specific keyboard VID/PID.
-
-It discovers compatible Raw HID interfaces using:
-
-    Usage Page = 0xFF60
-    Usage      = 0x0061
-
-This allows compatible keyboards to be connected or disconnected without
-changing the bridge configuration.
-
-The bridge also handles keyboard hot-plug and hot-unplug while it is
-running.
-
-This is useful when the ZMK keyboard is switched between Bluetooth hosts,
-such as the Mac, an office PC, or an iPad.
-
-## Updating the LaunchAgent
-
-If the plist is changed in the repository, run:
-
-    ./mac/mac/launchagent/install.sh
-
-Do not manually edit the copy in `~/Library/LaunchAgents/` unless there
-is a specific reason to do so. The repository copy is the source of truth.
