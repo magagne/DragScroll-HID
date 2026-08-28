@@ -18,7 +18,7 @@ The macOS LaunchAgent files are located here:
 
     platform/mac/launchagent/
     ├── install.sh
-    └── com.matthieu.corne-ploopy-bridge.plist
+    └── com.corne-ploopy-bridge.plist
 
 The bridge implementation is located here:
 
@@ -45,11 +45,11 @@ LaunchAgent.
 
 The service identifier is:
 
-    com.matthieu.corne-ploopy-bridge
+    com.corne-ploopy-bridge
 
 Check whether the Agent is loaded:
 
-    launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge
+    launchctl print gui/$(id -u)/com.corne-ploopy-bridge
 
 If the Agent is loaded, launchctl displays its service information.
 
@@ -64,15 +64,15 @@ virtual environment and the repository as its working directory.
 
 To stop the Agent for the current user:
 
-    launchctl bootout gui/$(id -u)/com.matthieu.corne-ploopy-bridge
+    launchctl bootout gui/$(id -u)/com.corne-ploopy-bridge
 
 After stopping it, the service should no longer be found by:
 
-    launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge
+    launchctl print gui/$(id -u)/com.corne-ploopy-bridge
 
 The expected result after a successful stop is:
 
-    Could not find service "com.matthieu.corne-ploopy-bridge"
+    Could not find service "com.corne-ploopy-bridge"
 
 To start it again, use the installation command:
 
@@ -82,7 +82,7 @@ To start it again, use the installation command:
 
 If launchctl reports:
 
-    Could not find service "com.matthieu.corne-ploopy-bridge"
+    Could not find service "com.corne-ploopy-bridge"
 
 the Agent is not currently loaded for the user.
 
@@ -155,7 +155,7 @@ The actual event flow remains:
     │   └── mac/
     │       └── launchagent/
     │           ├── install.sh
-    │           └── com.matthieu.corne-ploopy-bridge.plist
+    │           └── com.corne-ploopy-bridge.plist
     │
     └── doc/
         └── mac/

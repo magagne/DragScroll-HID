@@ -121,7 +121,7 @@ The macOS LaunchAgent implementation is located under:
 
     platform/mac/launchagent/
     ├── install.sh
-    └── com.matthieu.corne-ploopy-bridge.plist
+    └── com.corne-ploopy-bridge.plist
 
 The normal way to install and start the Agent is:
 
@@ -129,11 +129,11 @@ The normal way to install and start the Agent is:
 
 The LaunchAgent service identifier is:
 
-    com.matthieu.corne-ploopy-bridge
+    com.corne-ploopy-bridge
 
 To verify that the Agent is loaded:
 
-    launchctl print gui/$(id -u)/com.matthieu.corne-ploopy-bridge
+    launchctl print gui/$(id -u)/com.corne-ploopy-bridge
 
 The detailed macOS LaunchAgent documentation is:
 
@@ -173,7 +173,7 @@ rather than manually launching the Python implementation.
     │   └── mac/
     │       └── launchagent/
     │           ├── install.sh
-    │           └── com.matthieu.corne-ploopy-bridge.plist
+    │           └── com.corne-ploopy-bridge.plist
     │
     └── doc/
         └── mac/
