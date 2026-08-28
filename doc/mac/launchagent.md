@@ -133,7 +133,7 @@ The LaunchAgent is outside the HID event path.
 
 The actual event flow remains:
 
-    Corne / ZMK
+    QMK / ZMK
          │
          │ DRAG_SCROLL
          ▼
