@@ -7,15 +7,15 @@ starts automatically when the user logs in.
 
 The LaunchAgent project files are stored in:
 
-    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/launchagent/
+    /Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge/mac/launchagent/
 
 The source plist is:
 
-    launchagent/com.matthieu.corne-ploopy-bridge.plist
+    mac/mac/launchagent/com.matthieu.corne-ploopy-bridge.plist
 
 The installation script is:
 
-    launchagent/install.sh
+    mac/mac/launchagent/install.sh
 
 The installed LaunchAgent is:
 
@@ -53,7 +53,7 @@ process exits unexpectedly.
 
 From the repository root:
 
-    ./launchagent/install.sh
+    ./mac/mac/launchagent/install.sh
 
 The script:
 
@@ -160,7 +160,7 @@ such as the Mac, an office PC, or an iPad.
 
 If the plist is changed in the repository, run:
 
-    ./launchagent/install.sh
+    ./mac/mac/launchagent/install.sh
 
 Do not manually edit the copy in `~/Library/LaunchAgents/` unless there
 is a specific reason to do so. The repository copy is the source of truth.

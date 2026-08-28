@@ -4,7 +4,7 @@ set -e
 
 PROJECT_DIR="/Users/matthieu/Documents/GitHub/Corne-Ploopy-Bridge"
 PLIST_NAME="com.matthieu.corne-ploopy-bridge.plist"
-SOURCE="$PROJECT_DIR/launchagent/$PLIST_NAME"
+SOURCE="$PROJECT_DIR/mac/launchagent/$PLIST_NAME"
 DEST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 LABEL="com.matthieu.corne-ploopy-bridge"
 
