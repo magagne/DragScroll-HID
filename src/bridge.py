@@ -1,6 +1,7 @@
 import argparse
 import ctypes
 import time
+from datetime import datetime
 
 import hid
 
@@ -16,7 +17,8 @@ DRAG_SCROLL_OFF = 0x73
 
 
 def info(message):
-    print(message, flush=True)
+    timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    print(f"[{timestamp}] {message}", flush=True)
 
 
 class PloopyOutput:
