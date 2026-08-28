@@ -15,6 +15,10 @@ DRAG_SCROLL_ON = 0x53
 DRAG_SCROLL_OFF = 0x73
 
 
+def info(message):
+    print(message, flush=True)
+
+
 class PloopyOutput:
     """
     Ploopy output layer.
@@ -121,7 +125,6 @@ def close_device(entry, debug=False):
         pass
 
 
-
 def enable_shared_hid_access():
     lib = ctypes.CDLL(hid.__file__)
     func = lib.hid_darwin_set_open_exclusive
@@ -148,9 +151,11 @@ def main():
     devices = {}
 
     last_scan = 0.0
+    running_logged = False
+
+    info("HID bridge started.")
 
     if args.debug:
-        print("Starting HID bridge...")
         print(
             f"Looking for Usage Page 0x{USAGE_PAGE:04x}, "
             f"Usage 0x{USAGE:04x}"
@@ -175,11 +180,9 @@ def main():
                     if path not in discovered_paths:
                         entry = devices.pop(path)
 
-                        if args.debug:
-                            print(
-                                "Device disconnected:",
-                                entry["name"],
-                            )
+                        info(
+                            f"Device disconnected: {entry['name']}"
+                        )
 
                         close_device(
                             entry,
@@ -201,11 +204,9 @@ def main():
 
                         devices[path] = entry
 
-                        if args.debug:
-                            print(
-                                "Device connected:",
-                                entry["name"],
-                            )
+                        info(
+                            f"Device connected: {entry['name']}"
+                        )
 
                     except OSError as error:
                         if args.debug:
@@ -214,6 +215,10 @@ def main():
                                 device_name(device_info),
                                 error,
                             )
+
+                if not running_logged:
+                    info("HID bridge running.")
+                    running_logged = True
 
                 if args.debug:
                     if devices:
@@ -294,7 +299,7 @@ def main():
 
     except KeyboardInterrupt:
         print()
-        print("Stopping HID bridge...")
+        info("Stopping HID bridge...")
 
     finally:
         for entry in list(devices.values()):
@@ -305,7 +310,7 @@ def main():
 
         devices.clear()
 
-        print("Bridge stopped.")
+        info("Bridge stopped.")
 
 
 if __name__ == "__main__":
