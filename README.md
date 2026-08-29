@@ -280,7 +280,7 @@ rather than manually launching the Python implementation.
 
 The complete system can be viewed as:
 
-    CORNE / ZMK SIDE
+    KEYBOARD SIDE
 
     QMK / VIAL
       └── modules/drag_scroll/
