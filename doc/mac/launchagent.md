@@ -1,6 +1,6 @@
 # macOS LaunchAgent
 
-The Corne-Ploopy-Bridge can run as a macOS LaunchAgent so the bridge starts
+The DragScroll-HID can be run as a macOS LaunchAgent so the bridge starts
 automatically for the logged-in user.
 
 ## What the LaunchAgent Does
@@ -18,11 +18,11 @@ The macOS LaunchAgent files are located here:
 
     platform/mac/launchagent/
     ├── install.sh
-    └── com.corne-ploopy-bridge.plist
+    └── com.dragscroll-hid.plist
 
 The bridge implementation is located here:
 
-    src/bridge.py
+    src/drag_scroll_hid.py
 
 ## Install and Start
 
@@ -66,11 +66,11 @@ LaunchAgent.
 
 The service identifier is:
 
-    com.corne-ploopy-bridge
+    com.dragscroll-hid
 
 Check whether the LaunchAgent is loaded:
 
-    launchctl print gui/$(id -u)/com.corne-ploopy-bridge
+    launchctl print gui/$(id -u)/com.dragscroll-hid
 
 If the LaunchAgent is loaded, `launchctl` displays its service information.
 
@@ -83,10 +83,10 @@ virtual environment and the repository as its working directory.
 
 The LaunchAgent redirects standard output and standard error to:
 
-    bridge.log
-    bridge-error.log
+    dragscroll-hid.log
+    dragscroll-hid-error.log
 
-Normal service information is written to `bridge.log` with ISO 8601
+Normal service information is written to `dragscroll-hid.log` with ISO 8601
 timestamps and the local UTC offset.
 
 For example:
@@ -102,15 +102,15 @@ bridge is explicitly started with `--debug` from a terminal.
 
 To stop and unload the LaunchAgent for the current user:
 
-    launchctl bootout gui/$(id -u)/com.corne-ploopy-bridge
+    launchctl bootout gui/$(id -u)/com.dragscroll-hid
 
 After stopping it, the service should no longer be found by:
 
-    launchctl print gui/$(id -u)/com.corne-ploopy-bridge
+    launchctl print gui/$(id -u)/com.dragscroll-hid
 
 The expected result after a successful stop is:
 
-    Could not find service "com.corne-ploopy-bridge"
+    Could not find service "com.dragscroll-hid"
 
 There is no separate project `start` command.
 
@@ -123,7 +123,7 @@ Start command:
 
 If `launchctl` reports:
 
-    Could not find service "com.corne-ploopy-bridge"
+    Could not find service "com.dragscroll-hid"
 
 the LaunchAgent is not currently loaded for the user.
 
@@ -141,21 +141,21 @@ LaunchAgent files are present under:
 The installer uses the plist located beside the install script and does not
 depend on a hardcoded user-specific repository path.
 
-If the LaunchAgent is running but `bridge.log` is empty, first verify the
+If the LaunchAgent is running but `dragscroll-hid.log` is empty, first verify the
 configured output path:
 
-    launchctl print gui/$(id -u)/com.corne-ploopy-bridge | grep -E 'stdout path|stderr path'
+    launchctl print gui/$(id -u)/com.dragscroll-hid | grep -E 'stdout path|stderr path'
 
 The expected paths are:
 
-    stdout path = .../Corne-Ploopy-Bridge/bridge.log
-    stderr path = .../Corne-Ploopy-Bridge/bridge-error.log
+    stdout path = .../DragScroll-HID/dragscroll-hid.log
+    stderr path = .../DragScroll-HID/dragscroll-hid-error.log
 
 ## Bridge Implementation
 
 The bridge itself is implemented in:
 
-    src/bridge.py
+    src/drag_scroll_hid.py
 
 The LaunchAgent is the macOS process-management layer. It starts and
 supervises the bridge; it does not contain the bridge logic.
@@ -165,7 +165,7 @@ supervises the bridge; it does not contain the bridge logic.
 The bridge can also be run manually in debug mode during development or
 troubleshooting:
 
-    .venv/bin/python -u src/bridge.py --debug
+    .venv/bin/python -u src/drag_scroll_hid.py --debug
 
 The LaunchAgent is intended for normal automatic operation.
 
@@ -200,22 +200,22 @@ The actual event flow remains:
       Raw HID
          │
          ▼
-    Corne-Ploopy-Bridge
+    DragScroll-HID
          │
          ▼
        Ploopy
 
 ## Project Layout
 
-    Corne-Ploopy-Bridge/
+    DragScroll-HID/
     ├── src/
-    │   └── bridge.py
+    │   └── drag_scroll_hid.py
     │
     ├── platform/
     │   └── mac/
     │       └── launchagent/
     │           ├── install.sh
-    │           └── com.corne-ploopy-bridge.plist
+    │           └── com.dragscroll-hid.plist
     │
     └── doc/
         └── mac/

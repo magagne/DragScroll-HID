@@ -1,5 +1,6 @@
+# DragScroll-HID runtime logs
 
-# Corne-Ploopy-Bridge runtime logs
-bridge.log
-bridge-error.log
+dragscroll-hid.log
+dragscroll-hid-error.log
+
 .DS_Store

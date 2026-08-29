@@ -5,15 +5,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-PLIST_NAME="com.corne-ploopy-bridge.plist"
+PLIST_NAME="com.dragscroll-hid.plist"
 SOURCE="$SCRIPT_DIR/$PLIST_NAME"
 DEST="$HOME/Library/LaunchAgents/$PLIST_NAME"
-LABEL="com.corne-ploopy-bridge"
+LABEL="com.dragscroll-hid"
 
 PYTHON="$PROJECT_DIR/.venv/bin/python"
-BRIDGE="$PROJECT_DIR/src/bridge.py"
+DRAG_SCROLL_HID="$PROJECT_DIR/src/drag_scroll_hid.py"
 
-echo "Installing Corne-Ploopy-Bridge LaunchAgent..."
+echo "Installing DragScroll-HID LaunchAgent..."
 echo
 
 if [ ! -x "$PYTHON" ]; then
@@ -22,15 +22,19 @@ if [ ! -x "$PYTHON" ]; then
     exit 1
 fi
 
-if [ ! -f "$BRIDGE" ]; then
-    echo "Error: Bridge not found:"
-    echo "  $BRIDGE"
+if [ ! -f "$DRAG_SCROLL_HID" ]; then
+    echo "Error: DragScroll-HID implementation not found:"
+    echo "  $DRAG_SCROLL_HID"
     exit 1
 fi
 
 echo "Generating LaunchAgent plist..."
 
-sed     -e "s|__PYTHON__|$PYTHON|g"     -e "s|__BRIDGE__|$BRIDGE|g"     -e "s|__PROJECT__|$PROJECT_DIR|g"     "$SOURCE" > "$DEST"
+sed \
+    -e "s|__PYTHON__|$PYTHON|g" \
+    -e "s|__DRAG_SCROLL_HID__|$DRAG_SCROLL_HID|g" \
+    -e "s|__PROJECT__|$PROJECT_DIR|g" \
+    "$SOURCE" > "$DEST"
 
 echo "Validating plist..."
 plutil -lint "$DEST"
@@ -41,7 +45,7 @@ launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$DEST"
 
 echo
-echo "LaunchAgent installed successfully."
+echo "DragScroll-HID LaunchAgent installed successfully."
 echo
 
 launchctl print "gui/$(id -u)/$LABEL" | grep -E "state|pid|arguments"
