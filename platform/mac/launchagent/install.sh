@@ -17,8 +17,11 @@ echo "Installing DragScroll-HID LaunchAgent..."
 echo
 
 if [ ! -x "$PYTHON" ]; then
-    echo "Error: Python virtual environment not found:"
+    echo "Error: Python executable not found or not executable:"
     echo "  $PYTHON"
+    echo
+    echo "Resolved project directory:"
+    echo "  $PROJECT_DIR"
     exit 1
 fi
 
