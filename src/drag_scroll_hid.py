@@ -9,7 +9,6 @@ import hid
 USAGE_PAGE = 0xFF60
 USAGE = 0x0061
 REPORT_SIZE = 32
-
 SCAN_INTERVAL = 1.0
 
 DRAG_SCROLL_ON = 0x53
@@ -23,32 +22,56 @@ def info(message):
 
 class PloopyOutput:
     """
-    Ploopy output layer.
-
-    This is intentionally a stub until the Nano-2 HID output
-    protocol has been verified.
+    Sends drag-scroll commands to the Ploopy Nano 2 Raw HID interface.
     """
 
+    def __init__(self):
+        self.devices = {}
+
+    def update_devices(self, devices):
+        self.devices = devices
+
     def send_drag_scroll(self, enabled):
-        # TODO: replace with real Ploopy HID transmission.
-        pass
+        command = DRAG_SCROLL_ON if enabled else DRAG_SCROLL_OFF
+        report = [command] + [0] * (REPORT_SIZE - 1)
+
+        for path, entry in list(self.devices.items()):
+            name = entry["name"]
+
+            try:
+                written = entry["device"].write(report)
+
+                print(
+                    f"TX [{name}]: "
+                    + " ".join(f"{byte:02x}" for byte in report),
+                    flush=True,
+                )
+
+                if written != REPORT_SIZE:
+                    print(
+                        f"TX WARNING [{name}]: wrote {written} bytes",
+                        flush=True,
+                    )
+
+            except OSError as error:
+                print(
+                    f"TX ERROR [{name}]: {error}",
+                    flush=True,
+                )
 
 
 def device_name(device):
     """
     Build a descriptive name without relying on VID/PID.
     """
-
     manufacturer = (
         device.get("manufacturer_string")
         or "Unknown manufacturer"
     )
-
     product = (
         device.get("product_string")
         or "Unknown product"
     )
-
     serial = device.get("serial_number") or ""
 
     if serial:
@@ -60,11 +83,9 @@ def device_name(device):
 def find_raw_hid_devices():
     """
     Find all devices exposing the Raw HID interface used by the bridge.
-
     No VID/PID is used. Any compatible HID device using the required
     Usage Page and Usage is accepted.
     """
-
     devices = []
 
     for device in hid.enumerate():
@@ -149,7 +170,6 @@ def main():
     enable_shared_hid_access()
 
     ploopy = PloopyOutput()
-
     devices = {}
 
     last_scan = 0.0
@@ -261,7 +281,6 @@ def main():
                     )
 
                     devices.pop(path, None)
-
                     continue
 
                 if not data:
@@ -295,6 +314,7 @@ def main():
                         else "DRAG_SCROLL_OFF",
                     )
 
+                ploopy.update_devices(devices)
                 ploopy.send_drag_scroll(event)
 
             time.sleep(0.001)
@@ -311,7 +331,6 @@ def main():
             )
 
         devices.clear()
-
         info("Bridge stopped.")
 
 
