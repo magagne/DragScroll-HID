@@ -162,18 +162,27 @@ supervises the bridge; it does not contain the bridge logic.
 
 ## Debugging
 
-The bridge can also be run manually in debug mode during development or
-troubleshooting:
+The bridge can be run manually in debug mode from a terminal.
+
+First create the Python virtual environment:
+
+    python3 -m venv .venv
+
+Then install the HID dependency:
+
+    .venv/bin/python -m pip install hidapi
+
+Run the bridge in debug mode:
 
     .venv/bin/python -u src/drag_scroll_hid.py --debug
 
+You should see HID activity directly in the terminal.
+
+Stop the debug bridge with:
+
+    Ctrl+C
+
 The LaunchAgent is intended for normal automatic operation.
-
-Normal service logging is always enabled. It records important lifecycle
-events such as bridge startup, device connection, and bridge shutdown.
-
-Detailed HID diagnostic output remains available through `--debug`.
-
 ## Platform Separation
 
 The LaunchAgent is specific to macOS.
