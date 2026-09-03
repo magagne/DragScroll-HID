@@ -187,36 +187,17 @@ the core bridge architecture.
 For example, a future Windows implementation can use PowerShell and
 Windows Task Scheduler.
 
-## Architecture
-
-The LaunchAgent is outside the HID event path.
-
-The actual event flow remains:
-
-    QMK / ZMK
-         │
-         │ DRAG_SCROLL
-         ▼
-      Raw HID
-         │
-         ▼
-    DragScroll-HID
-         │
-         ▼
-       Ploopy
-
 ## Project Layout
 
     DragScroll-HID/
+    ├── README.md
+    │
     ├── src/
     │   └── drag_scroll_hid.py
     │
-    ├── platform/
-    │   └── mac/
-    │       └── launchagent/
-    │           ├── install.sh
-    │           └── com.dragscroll-hid.plist
-    │
-    └── doc/
+    └── platform/
         └── mac/
-            └── launchagent.md
+            ├── README.md
+            └── launchagent/
+                ├── install.sh
+                └── com.dragscroll-hid.plist
