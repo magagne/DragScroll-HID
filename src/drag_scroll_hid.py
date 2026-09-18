@@ -14,6 +14,9 @@ SCAN_INTERVAL = 1.0
 DRAG_SCROLL_ON = 0x53
 DRAG_SCROLL_OFF = 0x73
 
+MOUSE_ACTIVITY = 0x41
+MOUSE_ACTIVITY_VERSION = 0x01
+
 
 def info(message):
     timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -36,10 +39,13 @@ class PloopyOutput:
         report = [command] + [0] * (REPORT_SIZE - 1)
 
         for path, entry in list(self.devices.items()):
+            if entry["role"] != "ploopy":
+                continue
+
             name = entry["name"]
 
             try:
-                written = entry["device"].write(report)
+                written = entry["device"].write(b"\x00" + bytes(report))
 
                 print(
                     f"TX [{name}]: "
@@ -47,7 +53,47 @@ class PloopyOutput:
                     flush=True,
                 )
 
-                if written != REPORT_SIZE:
+                if written != REPORT_SIZE + 1:
+                    print(
+                        f"TX WARNING [{name}]: wrote {written} bytes",
+                        flush=True,
+                    )
+
+            except OSError as error:
+                print(
+                    f"TX ERROR [{name}]: {error}",
+                    flush=True,
+                )
+
+
+class CorneOutput:
+    """
+    Sends mouse-activity notifications to the Corne Raw HID interface.
+    """
+
+    def __init__(self):
+        self.devices = {}
+
+    def update_devices(self, devices):
+        self.devices = devices
+
+    def send_mouse_activity(self, report):
+        for path, entry in list(self.devices.items()):
+            if entry["role"] != "corne":
+                continue
+
+            name = entry["name"]
+
+            try:
+                written = entry["device"].write(b"\x00" + bytes(report))
+
+                print(
+                    f"TX [{name}]: "
+                    + " ".join(f"{byte:02x}" for byte in report),
+                    flush=True,
+                )
+
+                if written != REPORT_SIZE + 1:
                     print(
                         f"TX WARNING [{name}]: wrote {written} bytes",
                         flush=True,
@@ -80,6 +126,35 @@ def device_name(device):
     return f"{manufacturer} / {product}"
 
 
+def device_role(device):
+    """
+    Identify the bridge endpoints without hardcoding USB paths.
+    """
+    manufacturer = (
+        device.get("manufacturer_string")
+        or ""
+    ).strip()
+
+    product = (
+        device.get("product_string")
+        or ""
+    ).strip()
+
+    if (
+        manufacturer == "Ploopy Corporation"
+        and product == "Ploopy Nano 2 Trackball"
+    ):
+        return "ploopy"
+
+    if (
+        manufacturer == "ZMK Project"
+        and product == "Crkbd-ZMK-CHOC-42"
+    ):
+        return "corne"
+
+    return None
+
+
 def find_raw_hid_devices():
     """
     Find all devices exposing the Raw HID interface used by the bridge.
@@ -105,10 +180,17 @@ def decode_event(data):
     command = data[0]
 
     if command == DRAG_SCROLL_ON:
-        return True
+        return ("drag_scroll", True)
 
     if command == DRAG_SCROLL_OFF:
-        return False
+        return ("drag_scroll", False)
+
+    if (
+        command == MOUSE_ACTIVITY
+        and len(data) >= 2
+        and data[1] == MOUSE_ACTIVITY_VERSION
+    ):
+        return ("mouse_activity", bytes(data))
 
     return None
 
@@ -170,6 +252,7 @@ def main():
     enable_shared_hid_access()
 
     ploopy = PloopyOutput()
+    corne = CorneOutput()
     devices = {}
 
     last_scan = 0.0
@@ -219,15 +302,22 @@ def main():
                         continue
 
                     try:
+                        role = device_role(device_info)
+
+                        if role is None:
+                            continue
+
                         entry = open_device(
                             device_info,
                             args.debug,
                         )
 
+                        entry["role"] = role
                         devices[path] = entry
 
                         info(
-                            f"Device connected: {entry['name']}"
+                            f"Device connected: "
+                            f"{entry['name']} [{role}]"
                         )
 
                     except OSError as error:
@@ -306,16 +396,47 @@ def main():
 
                     continue
 
-                if args.debug:
-                    print(
-                        f"EVENT [{name}]:",
-                        "DRAG_SCROLL_ON"
-                        if event
-                        else "DRAG_SCROLL_OFF",
-                    )
+                event_type, event_value = event
 
-                ploopy.update_devices(devices)
-                ploopy.send_drag_scroll(event)
+                if event_type == "drag_scroll":
+                    # Corne -> bridge -> Ploopy
+                    if entry["role"] != "corne":
+                        if args.debug:
+                            print(
+                                f"EVENT [{name}]: "
+                                "ignored drag-scroll from non-Corne"
+                            )
+                        continue
+
+                    if args.debug:
+                        print(
+                            f"EVENT [{name}]:",
+                            "DRAG_SCROLL_ON"
+                            if event_value
+                            else "DRAG_SCROLL_OFF",
+                        )
+
+                    ploopy.update_devices(devices)
+                    ploopy.send_drag_scroll(event_value)
+
+                elif event_type == "mouse_activity":
+                    # Ploopy -> bridge -> Corne
+                    if entry["role"] != "ploopy":
+                        if args.debug:
+                            print(
+                                f"EVENT [{name}]: "
+                                "ignored mouse activity from non-Ploopy"
+                            )
+                        continue
+
+                    if args.debug:
+                        print(
+                            f"EVENT [{name}]: "
+                            "MOUSE_ACTIVITY A 01"
+                        )
+
+                    corne.update_devices(devices)
+                    corne.send_mouse_activity(event_value)
 
             time.sleep(0.001)
 
