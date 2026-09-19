@@ -5,13 +5,13 @@
 <dict>
 
     <key>Label</key>
-    <string>com.dragscroll-hid</string>
+    <string>com.ploopy-bridge-hid</string>
 
     <key>ProgramArguments</key>
     <array>
         <string>__PYTHON__</string>
         <string>-u</string>
-        <string>__DRAG_SCROLL_HID__</string>
+        <string>__PLOOPY_BRIDGE_HID__</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -24,10 +24,10 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>__PROJECT__/dragscroll-hid.log</string>
+    <string>__PROJECT__/ploopy-bridge-hid.log</string>
 
     <key>StandardErrorPath</key>
-    <string>__PROJECT__/dragscroll-hid-error.log</string>
+    <string>__PROJECT__/ploopy-bridge-hid-error.log</string>
 
 </dict>
 </plist>
