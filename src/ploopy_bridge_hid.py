@@ -1,6 +1,7 @@
 import argparse
 import ctypes
 import time
+import threading
 from datetime import datetime
 
 import hid
@@ -69,41 +70,103 @@ class PloopyOutput:
 class KeyboardOutput:
     """
     Sends AutoMouseLayer notifications to keyboard Raw HID interfaces.
+
+    AutoMouseLayer forwarding is asynchronous so a slow Bluetooth HID write
+    cannot block reading from the Ploopy. Multiple pending activity reports
+    are coalesced into the newest report.
     """
 
     def __init__(self):
         self.devices = {}
 
+        self._condition = threading.Condition()
+        self._pending_report = None
+        self._stopping = False
+
+        self._worker = threading.Thread(
+            target=self._writer_loop,
+            name="AutoMouseLayerWriter",
+            daemon=True,
+        )
+        self._worker.start()
+
     def update_devices(self, devices):
-        self.devices = devices
+        with self._condition:
+            self.devices = {
+                path: entry
+                for path, entry in devices.items()
+                if entry["role"] == "keyboard"
+            }
+            self._condition.notify()
 
     def send_auto_mouse_layer(self, report):
-        for path, entry in list(self.devices.items()):
-            if entry["role"] != "keyboard":
-                continue
+        """
+        Store only the newest AutoMouseLayer report.
 
-            name = entry["name"]
+        There is no reason to queue older A 01 packets because they all mean
+        the same thing: "trackball activity occurred".
+        """
+        with self._condition:
+            self._pending_report = bytes(report)
+            self._condition.notify()
 
-            try:
-                written = entry["device"].write(b"\x00" + bytes(report))
+    def _writer_loop(self):
+        while True:
+            with self._condition:
+                while (
+                    self._pending_report is None
+                    and not self._stopping
+                ):
+                    self._condition.wait()
 
-                print(
-                    f"TX [{name}]: "
-                    + " ".join(f"{byte:02x}" for byte in report),
-                    flush=True,
-                )
+                if self._stopping:
+                    return
 
-                if written != REPORT_SIZE + 1:
+                report = self._pending_report
+                self._pending_report = None
+
+                devices = list(self.devices.values())
+
+            for entry in devices:
+                if entry["role"] != "keyboard":
+                    continue
+
+                device = entry["device"]
+                name = entry["name"]
+
+                try:
+                    written = device.write(
+                        b"\x00" + report
+                    )
+
                     print(
-                        f"TX WARNING [{name}]: wrote {written} bytes",
+                        f"TX [{name}]: "
+                        + " ".join(
+                            f"{byte:02x}"
+                            for byte in report
+                        ),
                         flush=True,
                     )
 
-            except OSError as error:
-                print(
-                    f"TX ERROR [{name}]: {error}",
-                    flush=True,
-                )
+                    if written != REPORT_SIZE + 1:
+                        print(
+                            f"TX WARNING [{name}]: "
+                            f"wrote {written} bytes",
+                            flush=True,
+                        )
+
+                except OSError as error:
+                    print(
+                        f"TX ERROR [{name}]: {error}",
+                        flush=True,
+                    )
+
+    def stop(self):
+        with self._condition:
+            self._stopping = True
+            self._condition.notify()
+
+        self._worker.join(timeout=1.0)
 
 
 def device_name(device):
@@ -442,6 +505,8 @@ def main():
         info("Stopping HID bridge...")
 
     finally:
+        keyboard.stop()
+
         for entry in list(devices.values()):
             close_device(
                 entry,
