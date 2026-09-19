@@ -1,37 +1,38 @@
 # Ploopy-Bridge-HID
 
-Ploopy-Bridge-HID is a small macOS host-side Raw HID bridge connecting a Ploopy pointing device and keyboard firmware.
+Ploopy-Bridge-HID is a small macOS host-side Raw HID transport bridge
+connecting a Ploopy pointing device and a compatible keyboard firmware.
 
 It provides two independent communication paths:
 
-- **DRAG_SCROLL** — keyboard → Ploopy
-- **MOUSE_ACTIVITY** — Ploopy → keyboard
+- **DragScroll-HID** — keyboard → Ploopy
+- **AutoMouseLayer-HID** — Ploopy → keyboard
 
-The bridge transports these commands between the two devices. It does not implement the pointing behavior, scrolling behavior, or automatic mouse-layer logic itself.
+The bridge transports these protocols between the two devices. It does not
+implement pointing behavior, scrolling behavior, or keyboard layer policy.
 
 ## Architecture
 
     Keyboard endpoint
          │
          │ Raw HID
-         │
          ▼
     Ploopy-Bridge-HID
          │
          │ Raw HID
-         │
          ▼
     Ploopy Nano 2
 
 The two protocol directions are:
 
     keyboard ── S / s ──────────────► Ploopy
-           DRAG_SCROLL
+           DragScroll-HID
 
     Ploopy ── A 01 ──────────────► keyboard
-             MOUSE_ACTIVITY
+           AutoMouseLayer-HID
 
-The bridge runs on macOS and forwards the Raw HID packets without changing their protocol payload.
+The bridge runs on macOS and forwards the Raw HID packets without changing
+their protocol payload.
 
 ## Raw HID Interface
 
@@ -40,36 +41,34 @@ The bridge discovers Raw HID interfaces using:
     Usage Page : 0xFF60
     Usage      : 0x0061
 
-The bridge identifies Ploopy explicitly and treats other endpoints exposing the bridge HID interface as keyboard endpoints.
+The bridge identifies the Ploopy Nano 2 explicitly. Other devices exposing
+the same bridge HID interface are treated as keyboard endpoints.
 
-Current supported devices are:
+No keyboard VID, PID, firmware name, or keyboard model is required.
 
-    Keyboard endpoint
-      Identification : Raw HID usage page 0xFF60 / usage 0x0061
-      Role           : keyboard
+The bridge uses a Raw HID report-ID prefix of `0x00` when writing to these
+HIDAPI interfaces.
 
-    Ploopy
-      Manufacturer : Ploopy Corporation
-      Product      : Ploopy Nano 2 Trackball
-
-The bridge uses a Raw HID report-ID prefix of `0x00` when writing to these HIDAPI interfaces.
-
-## DRAG_SCROLL
+## DragScroll-HID
 
 The keyboard sends one of two one-byte commands:
 
-    'S'  → DRAG_SCROLL ON
-    's'  → DRAG_SCROLL OFF
+    'S'  → DragScroll ON
+    's'  → DragScroll OFF
 
-The bridge forwards the command unchanged to the Ploopy device.
+The bridge forwards the command unchanged to the Ploopy.
 
-The Ploopy firmware applies the command to its existing drag-scroll behavior.
+The Ploopy firmware applies the command to its existing DragScroll behavior.
 
-The bridge does not decide when drag-scroll should be enabled or disabled.
+The bridge does not decide when DragScroll should be enabled or disabled.
 
-## MOUSE_ACTIVITY
+`DragScroll-HID` is the macOS Raw HID transport. Windows uses the separate
+`DragScroll-LED` transport and does not require this bridge.
 
-The Ploopy firmware sends a 32-byte Raw HID activity packet when physical trackball movement is detected.
+## AutoMouseLayer-HID
+
+The Ploopy firmware sends a 32-byte Raw HID notification when physical
+trackball movement is detected.
 
 The packet begins with:
 
@@ -83,49 +82,82 @@ The remaining bytes are currently zero.
 
 The bridge forwards this packet unchanged to the keyboard.
 
-The first physical movement is reported immediately. Subsequent activity notifications are rate-limited by the Ploopy firmware.
+The first physical movement is reported immediately. Subsequent notifications
+are rate-limited by the Ploopy firmware.
 
-The activity protocol is independent of:
+The notification is independent of:
 
-- rotation
-- drag-scroll
-- vertical-only scrolling
+- pointer rotation
+- DragScroll
+- Vertical Scrolling Only
 
-This allows the keyboard firmware to use physical mouse activity as an independent signal for its automatic mouse-layer handling.
+The bridge only transports the notification. The keyboard firmware decides
+which Mouse layer to activate and how long it remains active.
+
+## AutoMouseLayer-LED
+
+`AutoMouseLayer-LED` is the Windows transport for the same AutoMouseLayer
+feature.
+
+It does **not** use this bridge.
+
+On Windows:
+
+    Ploopy
+       │
+       │ Caps Lock keyboard event
+       ▼
+    Windows
+       │
+       │ Caps Lock LED state
+       ▼
+    Keyboard
+
+The keyboard firmware consumes the Caps Lock LED transition as its
+AutoMouseLayer signal.
+
+This is separate from DragScroll:
+
+- **ScrollLock** remains the DragScroll LED signal.
+- **Caps Lock** is the AutoMouseLayer LED signal.
 
 ## Direction Summary
 
     keyboard ── S / s ──────────────► Ploopy
-           DRAG_SCROLL
+           DragScroll-HID
 
     Ploopy ── A 01 ──────────────► keyboard
-             MOUSE_ACTIVITY
+           AutoMouseLayer-HID
 
 These are separate protocols and do not share state.
 
 ## Keyboard Firmware
 
-The keyboard-side implementation is maintained separately from this project.
+The keyboard-side implementation is maintained separately.
 
-The bridge supports any keyboard Raw HID endpoint exposing usage page `0xFF60` / usage `0x0061`.
+The bridge supports any compatible keyboard Raw HID endpoint exposing usage
+page `0xFF60` / usage `0x0061`.
 
 The keyboard firmware is responsible for:
 
-- deciding when drag-scroll is active
-- handling the mouse activity signal
-- managing automatic mouse-layer activation and timeout behavior
+- handling the DragScroll command
+- handling the AutoMouseLayer signal
+- selecting the appropriate Mouse layer
+- managing AutoMouseLayer ownership and timeout
 
 Ploopy-Bridge-HID only transports the corresponding Raw HID messages.
 
 ## Ploopy Firmware
 
-The enhanced Nano-2 firmware is maintained separately in the `Ploopy-Nano2-Enhanced` project.
+The enhanced Nano-2 firmware is maintained separately in the
+`Ploopy-Nano2-Enhanced` project.
 
 The Ploopy firmware is responsible for:
 
 - normal pointing-device HID behavior
-- drag-scroll behavior
-- generating mouse-activity notifications
+- DragScroll behavior
+- generating AutoMouseLayer-HID notifications
+- generating the Caps Lock signal used by AutoMouseLayer-LED
 
 No Ploopy mouse HID behavior is implemented by this host bridge.
 
@@ -142,27 +174,13 @@ The LaunchAgent:
 
 See `platform/mac/README.md` for installation and troubleshooting.
 
-## Project Structure
-
-    Ploopy-Bridge-HID/
-    ├── README.md
-    ├── .gitignore
-    ├── src/
-    │   └── ploopy_bridge_hid.py
-    └── platform/
-        └── mac/
-            ├── README.md
-            └── launchagent/
-                ├── install.sh
-                └── com.ploopy-bridge-hid.plist
-
 ## Debugging
 
 From the project directory:
 
     .venv/bin/python -u src/ploopy_bridge_hid.py --debug
 
-The debug output can be used to verify:
+Debug output can be used to verify:
 
 - Raw HID device discovery
 - keyboard and Ploopy device identification
@@ -175,8 +193,6 @@ For LaunchAgent troubleshooting, see `platform/mac/README.md`.
 ## Design Goals
 
 Ploopy-Bridge-HID is intentionally small.
-
-The responsibilities are separated:
 
     Keyboard firmware
           │
@@ -195,8 +211,9 @@ In particular, it does not:
 - monitor macOS mouse events
 - emulate mouse input through CoreGraphics
 - modify normal Ploopy HID reports
-- implement drag-scroll itself
+- implement DragScroll itself
 - implement keyboard-layer policy
 - infer keyboard operating-system layers
 
-Its role is to transport the defined Raw HID messages between the supported devices.
+Its role is to transport the defined Raw HID messages between the supported
+devices.

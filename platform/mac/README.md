@@ -153,7 +153,7 @@ This is useful for directly observing:
 - device roles
 - received Raw HID packets
 - decoded DRAG_SCROLL events
-- decoded MOUSE_ACTIVITY events
+- decoded AutoMouseLayer-HID events
 - forwarded Raw HID packets
 
 Press `Ctrl-C` to stop the manual process.
@@ -183,10 +183,10 @@ A drag-scroll deactivation should produce:
 Physical trackball movement should produce:
 
     RX [Ploopy]: 41 01 ...
-    EVENT: MOUSE_ACTIVITY A 01
+    EVENT: AUTO_MOUSE_LAYER A 01
     TX [Keyboard]: 41 01 ...
 
-The activity packet is 32 bytes long.
+The AutoMouseLayer packet is 32 bytes long.
 
 ## Manual Debug Command
 
@@ -215,5 +215,5 @@ The two supported protocols remain independent:
     DRAG_SCROLL
     Keyboard ─────────────────────► Ploopy
 
-    MOUSE_ACTIVITY
+    AutoMouseLayer-HID
     Ploopy ─────────────────────► Keyboard

@@ -14,8 +14,8 @@ SCAN_INTERVAL = 1.0
 DRAG_SCROLL_ON = 0x53
 DRAG_SCROLL_OFF = 0x73
 
-MOUSE_ACTIVITY = 0x41
-MOUSE_ACTIVITY_VERSION = 0x01
+AUTO_MOUSE_LAYER = 0x41
+AUTO_MOUSE_LAYER_VERSION = 0x01
 
 
 def info(message):
@@ -68,7 +68,7 @@ class PloopyOutput:
 
 class KeyboardOutput:
     """
-    Sends mouse-activity notifications to keyboard Raw HID interfaces.
+    Sends AutoMouseLayer notifications to keyboard Raw HID interfaces.
     """
 
     def __init__(self):
@@ -77,7 +77,7 @@ class KeyboardOutput:
     def update_devices(self, devices):
         self.devices = devices
 
-    def send_mouse_activity(self, report):
+    def send_auto_mouse_layer(self, report):
         for path, entry in list(self.devices.items()):
             if entry["role"] != "keyboard":
                 continue
@@ -183,11 +183,11 @@ def decode_event(data):
         return ("drag_scroll", False)
 
     if (
-        command == MOUSE_ACTIVITY
+        command == AUTO_MOUSE_LAYER
         and len(data) >= 2
-        and data[1] == MOUSE_ACTIVITY_VERSION
+        and data[1] == AUTO_MOUSE_LAYER_VERSION
     ):
-        return ("mouse_activity", bytes(data))
+        return ("auto_mouse_layer", bytes(data))
 
     return None
 
@@ -416,24 +416,24 @@ def main():
                     ploopy.update_devices(devices)
                     ploopy.send_drag_scroll(event_value)
 
-                elif event_type == "mouse_activity":
+                elif event_type == "auto_mouse_layer":
                     # Ploopy -> bridge -> keyboard
                     if entry["role"] != "ploopy":
                         if args.debug:
                             print(
                                 f"EVENT [{name}]: "
-                                "ignored mouse activity from non-Ploopy"
+                                "ignored AutoMouseLayer from non-Ploopy"
                             )
                         continue
 
                     if args.debug:
                         print(
                             f"EVENT [{name}]: "
-                            "MOUSE_ACTIVITY A 01"
+                            "AUTO_MOUSE_LAYER A 01"
                         )
 
                     keyboard.update_devices(devices)
-                    keyboard.send_mouse_activity(event_value)
+                    keyboard.send_auto_mouse_layer(event_value)
 
             time.sleep(0.001)
 
