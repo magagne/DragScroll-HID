@@ -66,9 +66,9 @@ class PloopyOutput:
                 )
 
 
-class CorneOutput:
+class KeyboardOutput:
     """
-    Sends mouse-activity notifications to the Corne Raw HID interface.
+    Sends mouse-activity notifications to keyboard Raw HID interfaces.
     """
 
     def __init__(self):
@@ -79,7 +79,7 @@ class CorneOutput:
 
     def send_mouse_activity(self, report):
         for path, entry in list(self.devices.items()):
-            if entry["role"] != "corne":
+            if entry["role"] != "keyboard":
                 continue
 
             name = entry["name"]
@@ -146,13 +146,10 @@ def device_role(device):
     ):
         return "ploopy"
 
-    if (
-        manufacturer == "ZMK Project"
-        and product == "Crkbd-ZMK-CHOC-42"
-    ):
-        return "corne"
-
-    return None
+    # Any non-Ploopy device exposing this bridge protocol is a keyboard
+    # endpoint. Identification is based on the bridge HID interface, not on
+    # a firmware name or a specific keyboard model.
+    return "keyboard"
 
 
 def find_raw_hid_devices():
@@ -252,7 +249,7 @@ def main():
     enable_shared_hid_access()
 
     ploopy = PloopyOutput()
-    corne = CorneOutput()
+    keyboard = KeyboardOutput()
     devices = {}
 
     last_scan = 0.0
@@ -399,12 +396,12 @@ def main():
                 event_type, event_value = event
 
                 if event_type == "drag_scroll":
-                    # Corne -> bridge -> Ploopy
-                    if entry["role"] != "corne":
+                    # Keyboard -> bridge -> Ploopy
+                    if entry["role"] != "keyboard":
                         if args.debug:
                             print(
                                 f"EVENT [{name}]: "
-                                "ignored drag-scroll from non-Corne"
+                                "ignored drag-scroll from non-keyboard"
                             )
                         continue
 
@@ -420,7 +417,7 @@ def main():
                     ploopy.send_drag_scroll(event_value)
 
                 elif event_type == "mouse_activity":
-                    # Ploopy -> bridge -> Corne
+                    # Ploopy -> bridge -> keyboard
                     if entry["role"] != "ploopy":
                         if args.debug:
                             print(
@@ -435,8 +432,8 @@ def main():
                             "MOUSE_ACTIVITY A 01"
                         )
 
-                    corne.update_devices(devices)
-                    corne.send_mouse_activity(event_value)
+                    keyboard.update_devices(devices)
+                    keyboard.send_mouse_activity(event_value)
 
             time.sleep(0.001)
 

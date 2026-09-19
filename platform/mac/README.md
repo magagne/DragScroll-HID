@@ -7,7 +7,7 @@ Ploopy-Bridge-HID can run as a macOS LaunchAgent so the bridge starts automatica
 - macOS
 - Python 3
 - the project's `.venv`
-- a supported Corne Raw HID device
+- a supported keyboard Raw HID device
 - a supported Ploopy Nano 2 Raw HID device
 
 The bridge uses the Raw HID interface:
@@ -164,27 +164,27 @@ After testing, reinstall the LaunchAgent:
 
 ## Protocol Debugging
 
-### Corne → Ploopy
+### Keyboard → Ploopy
 
 A drag-scroll activation should produce:
 
-    RX [Corne]: 53 ...
+    RX [Keyboard]: 53 ...
     EVENT: DRAG_SCROLL_ON
     TX [Ploopy]: 53 ...
 
 A drag-scroll deactivation should produce:
 
-    RX [Corne]: 73 ...
+    RX [Keyboard]: 73 ...
     EVENT: DRAG_SCROLL_OFF
     TX [Ploopy]: 73 ...
 
-### Ploopy → Corne
+### Ploopy → Keyboard
 
 Physical trackball movement should produce:
 
     RX [Ploopy]: 41 01 ...
     EVENT: MOUSE_ACTIVITY A 01
-    TX [Corne]: 41 01 ...
+    TX [Keyboard]: 41 01 ...
 
 The activity packet is 32 bytes long.
 
@@ -198,7 +198,7 @@ From the project root:
 
 The macOS component is intentionally only a transport bridge.
 
-    Corne ZMK
+    Keyboard endpoint
          │
          │ Raw HID
          ▼
@@ -213,7 +213,7 @@ The bridge does not use macOS mouse-event monitoring and does not modify the nor
 The two supported protocols remain independent:
 
     DRAG_SCROLL
-    Corne ─────────────────────► Ploopy
+    Keyboard ─────────────────────► Ploopy
 
     MOUSE_ACTIVITY
-    Ploopy ─────────────────────► Corne
+    Ploopy ─────────────────────► Keyboard

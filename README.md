@@ -11,7 +11,7 @@ The bridge transports these commands between the two devices. It does not implem
 
 ## Architecture
 
-    Corne ZMK
+    Keyboard endpoint
          │
          │ Raw HID
          │
@@ -25,10 +25,10 @@ The bridge transports these commands between the two devices. It does not implem
 
 The two protocol directions are:
 
-    Corne ── S / s ──────────────► Ploopy
+    keyboard ── S / s ──────────────► Ploopy
            DRAG_SCROLL
 
-    Ploopy ── A 01 ──────────────► Corne
+    Ploopy ── A 01 ──────────────► keyboard
              MOUSE_ACTIVITY
 
 The bridge runs on macOS and forwards the Raw HID packets without changing their protocol payload.
@@ -40,13 +40,13 @@ The bridge discovers Raw HID interfaces using:
     Usage Page : 0xFF60
     Usage      : 0x0061
 
-The bridge then identifies the supported endpoints by their USB HID device identity.
+The bridge identifies Ploopy explicitly and treats other endpoints exposing the bridge HID interface as keyboard endpoints.
 
 Current supported devices are:
 
-    Corne
-      Manufacturer : ZMK Project
-      Product      : Crkbd-ZMK-CHOC-42
+    Keyboard endpoint
+      Identification : Raw HID usage page 0xFF60 / usage 0x0061
+      Role           : keyboard
 
     Ploopy
       Manufacturer : Ploopy Corporation
@@ -81,7 +81,7 @@ or:
 
 The remaining bytes are currently zero.
 
-The bridge forwards this packet unchanged to the Corne.
+The bridge forwards this packet unchanged to the keyboard.
 
 The first physical movement is reported immediately. Subsequent activity notifications are rate-limited by the Ploopy firmware.
 
@@ -95,10 +95,10 @@ This allows the keyboard firmware to use physical mouse activity as an independe
 
 ## Direction Summary
 
-    Corne ── S / s ──────────────► Ploopy
+    keyboard ── S / s ──────────────► Ploopy
            DRAG_SCROLL
 
-    Ploopy ── A 01 ──────────────► Corne
+    Ploopy ── A 01 ──────────────► keyboard
              MOUSE_ACTIVITY
 
 These are separate protocols and do not share state.
@@ -107,7 +107,7 @@ These are separate protocols and do not share state.
 
 The keyboard-side implementation is maintained separately from this project.
 
-The bridge currently supports the Raw HID endpoint exposed by the Corne ZMK firmware.
+The bridge supports any keyboard Raw HID endpoint exposing usage page `0xFF60` / usage `0x0061`.
 
 The keyboard firmware is responsible for:
 
@@ -165,7 +165,7 @@ From the project directory:
 The debug output can be used to verify:
 
 - Raw HID device discovery
-- Corne and Ploopy device identification
+- keyboard and Ploopy device identification
 - received Raw HID packets
 - decoded events
 - forwarded packets
